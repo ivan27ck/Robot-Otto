@@ -19,9 +19,10 @@ void setup() {
 void loop() {
     server.handleClient();
 
-    if (startMovement) {
+    //movimiento de baile
+    if (baile) {
         
-      moveServo(servoMotorSup1, 90, 0, 3);
+    moveServo(servoMotorSup1, 90, 0, 3);
     moveServo(servoMotorSup1, 0, 90, 3);
     moveServo(servoMotorSup2, 90, 180, 3);
     moveServo(servoMotorSup2, 180, 90, 3);
@@ -37,7 +38,7 @@ void loop() {
 
     }
 
-    if (startMovement2) {
+    if (caminar) {
         
       
       servoMotorInf1.write(60);

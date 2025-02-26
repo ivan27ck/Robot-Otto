@@ -4,8 +4,8 @@
 
 // Variables globales
 WebServer server(80);
-bool startMovement = false;
-bool startMovement2 = false;
+bool baile = false;
+bool caminar = false;
 bool isInitialized = false;
 
 const char webpage[] PROGMEM = R"rawliteral(
@@ -213,18 +213,18 @@ void handleCommand() {
         Serial.println("Comando recibido: " + command);
 
         if (command == "Sp") {
-            startMovement = false;
-            startMovement2 = false;
+            baile = false;
+            caminar = false;
             // Detener los servos
             servoMotorInf1.write(90);
             servoMotorInf2.write(90);
             servoMotorSup1.write(90);
             servoMotorSup2.write(90);
         } else if (command == "St") {
-            startMovement = true;
+            baile = true;
             isInitialized = false;
         } else if (command == "ba") {
-            startMovement2 = true;
+            caminar = true;
             isInitialized = false;
         } else {
             server.send(400, "text/plain", "Comando no reconocido");

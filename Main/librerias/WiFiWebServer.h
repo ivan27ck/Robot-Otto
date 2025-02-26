@@ -15,8 +15,8 @@ void handleCommand();
 extern WebServer server;
 
 // Variables globales
-extern bool startMovement;
-extern bool startMovement2;
+extern bool baile;
+extern bool caminar;
 extern bool isInitialized;
 
 #endif
