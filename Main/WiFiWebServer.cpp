@@ -1,12 +1,13 @@
-#include "librerias/WiFiWebServer.h"
-#include "librerias/ServoControl.h"
+#include "WiFiWebServer.h"
+#include "ServoControl.h" // Para acceder a las variables de control
 
-
-// Variables globales
+const char* ssid = "iCUCEI";
+const char* password = "";
 WebServer server(80);
-bool baile = false;
-bool caminar = false;
-bool isInitialized = false;
+
+IPAddress local_IP(10, 214, 106, 120);
+IPAddress gateway(10, 214, 127, 254);
+IPAddress subnet(255, 255, 192, 0);
 
 const char webpage[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
@@ -169,67 +170,64 @@ const char webpage[] PROGMEM = R"rawliteral(
 </body>
 </html>
 
-
 )rawliteral";
 
-// Configuración de WiFi
-void setupWiFi(const char* ssid, const char* password, IPAddress local_IP, IPAddress gateway, IPAddress subnet) {
-    if (!WiFi.config(local_IP, gateway, subnet)) {
-        Serial.println("Error al configurar IP estática");
-    }
-    WiFi.begin(ssid, password);
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.print(".");
-    }
-    Serial.println("\nConectado a la red WiFi");
-    Serial.print("Dirección IP: ");
-    Serial.println(WiFi.localIP());
+void setupWiFi() {
+  if (!WiFi.config(local_IP, gateway, subnet)) {
+    Serial.println("Error al configurar IP estática");
+  }
 
-    if (!MDNS.begin("ottoInventores")) {
-        Serial.println("Error al configurar mDNS");
-        return;
-    }
-    Serial.println("mDNS configurado. Puedes acceder usando http://mirobot.local");
+  WiFi.begin(ssid, password);
+  
+  Serial.print("Conectando a la red WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  
+  Serial.println("\nConectado a la red WiFi");
+  Serial.print("Dirección IP: ");
+  Serial.println(WiFi.localIP());
+
+  if (!MDNS.begin("ottoInventores")) {
+    Serial.println("Error al configurar mDNS");
+    return;
+  }
+  
+  Serial.println("mDNS configurado. Puedes acceder usando http://mirobot.local");
+  
+  server.on("/", handleRoot);
+  server.on("/command", handleCommand);
+  server.begin();
+  Serial.println("Servidor web iniciado");
 }
 
-// Configuración del servidor web
-void setupWebServer() {
-    server.on("/", handleRoot);
-    server.on("/command", handleCommand);
-    server.begin();
-    Serial.println("Servidor web iniciado");
-}
-
-// Controlador de la página principal
 void handleRoot() {
-    server.send(200, "text/html", webpage);
+  server.send(200, "text/html", webpage);
 }
 
-// Controlador de comandos
 void handleCommand() {
-    if (server.hasArg("command")) {
-        String command = server.arg("command");
-        Serial.println("Comando recibido: " + command);
+  if (server.hasArg("command")) {
+    String command = server.arg("command");
+    Serial.println("Comando recibido: " + command);
 
-        if (command == "Sp") {
-            baile = false;
-            caminar = false;
-            // Detener los servos
-            servoMotorInf1.write(90);
-            servoMotorInf2.write(90);
-            servoMotorSup1.write(90);
-            servoMotorSup2.write(90);
-        } else if (command == "St") {
-            baile = true;
-            isInitialized = false;
-        } else if (command == "ba") {
-            caminar = true;
-            isInitialized = false;
-        } else {
-            server.send(400, "text/plain", "Comando no reconocido");
-        }
+    if (command == "Sp") {
+      stopMovement = true;
+      server.send(200, "text/plain", "Parar");
+    } else if (command == "St") {
+      startMovement = true;
+      isInitialized = false;
+      stopMovement = false;
+      server.send(200, "text/plain", "Bailar");
+    } else if (command == "ba") {
+      startMovement2 = true;
+      isInitialized = false;
+      stopMovement = false;
+      server.send(200, "text/plain", "Caminar");
     } else {
-        server.send(400, "text/plain", "Comando no encontrado");
+      server.send(400, "text/plain", "Comando no reconocido");
     }
+  } else {
+    server.send(400, "text/plain", "Comando no encontrado");
+  }
 }

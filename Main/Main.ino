@@ -1,62 +1,135 @@
-#include <Arduino.h>
-#include "librerias/ServoControl.h"
-#include "librerias/WiFiWebServer.h"
+#include <ESP32Servo.h>
+#include "ServoControl.h"
+#include "WiFiWebServer.h"
 
-const char* ssid = "iCUCEI";
-const char* password = "";
-IPAddress local_IP(10, 214, 106, 120);
-IPAddress gateway(10, 214, 127, 254);
-IPAddress subnet(255, 255, 192, 0);
+Servo servoMotorInf1;
+Servo servoMotorInf2;
+Servo servoMotorSup1;
+Servo servoMotorSup2;
+Servo servoMotorHand;
+Servo servoMotorHand2;
+
+const int triggerPin = 12;
+const int echoPin = 13;
+const int detectionDistance = 15;
 
 void setup() {
-    Serial.begin(115200);
+  Serial.begin(115200);
+  
+  pinMode(triggerPin, OUTPUT);
+  pinMode(echoPin, INPUT);
 
-    attachServos(); // Configurar servos
-    setupWiFi(ssid, password, local_IP, gateway, subnet); // Configurar WiFi
-    setupWebServer(); // Configurar servidor web
+  setupServos();
+  setupWiFi();
 }
 
 void loop() {
-    server.handleClient();
+  server.handleClient();
+  checkUltrasonicSensor();
 
-    //movimiento de baile
-    if (baile) {
-        
-    moveServo(servoMotorSup1, 90, 0, 3);
-    moveServo(servoMotorSup1, 0, 90, 3);
-    moveServo(servoMotorSup2, 90, 180, 3);
-    moveServo(servoMotorSup2, 180, 90, 3);
-
-    // Movimiento alternado de los servos inferiores
-    for (int j = 0; j <= 2; j++) {
-      moveServo(servoMotorInf1, 0, 60, 1);
-      moveServo(servoMotorInf1, 0, 60, 10);
-
-      moveServo(servoMotorInf2, 60, 120, 1);
-      moveServo(servoMotorInf2, 60, 120, 10);
-    }
-
-    }
-
-    if (caminar) {
-        
-      
-      servoMotorInf1.write(60);
-      servoMotorInf2.write(120);
-      servoMotorSup1.write(90);
-      servoMotorSup2.write(90);
-      
+  if (startMovement && !stopMovement) {
+    servoMotorInf1.write(90);
+    servoMotorInf2.write(90);
     
-      for (int j = 0; j <= 2; j++) {
-        moveServo(servoMotorInf1, 60, 120, 4);
-        moveServo(servoMotorSup1, 90, 180, 4);
-        moveServo(servoMotorInf1, 120, 60, 4);
-        moveServo(servoMotorSup1, 180, 90, 4);
-        moveServo(servoMotorInf2, 120, 60, 4);
-        moveServo(servoMotorSup2, 90, 30, 4);
-        moveServo(servoMotorInf2, 60, 120, 4);
-        moveServo(servoMotorSup2, 30, 90, 4);
-    }
+    moveServo(servoMotorSup1, 90, 0, 2);
+    if (stopMovement) { stopServos(); return; }
+    
+    moveServo(servoMotorSup1, 0, 90, 2);
+    if (stopMovement) { stopServos(); return; }
+    
+    moveServo(servoMotorSup2, 90, 180, 2);
+    if (stopMovement) { stopServos(); return; }
+    
+    moveServo(servoMotorSup2, 180, 90, 2);
+    if (stopMovement) { stopServos(); return; }
 
+    for (int j = 0; j <= 3 && !stopMovement; j++) {
+      servoMotorHand2.writeMicroseconds(1300);
+      server.handleClient();
+
+      servoMotorHand.writeMicroseconds(1700);
+      server.handleClient();
+      moveServo(servoMotorInf1, 90, 20, 1);
+      if (stopMovement) break;
+      
+      moveServo(servoMotorInf1, 20, 90, 5);
+      if (stopMovement) break;
+      
+      moveServo(servoMotorInf2, 90, 160, 1);
+      if (stopMovement) break;
+      
+      moveServo(servoMotorInf2, 160, 90, 5);
+      if (stopMovement) break;
+      
+      moveServo(servoMotorInf1, 90, 20, 1);
+      if (stopMovement) break;
+      
+      moveServo(servoMotorInf1, 20, 90, 5);
+      if (stopMovement) break;
+      
+      moveServo(servoMotorInf2, 90, 160, 1);
+      if (stopMovement) break;
+      
+      moveServo(servoMotorInf2, 160, 90, 5);
+      if (stopMovement) break;
     }
+    
+    if (stopMovement) {
+      stopServos();
+    }
+  }
+
+  if (startMovement2 && !stopMovement) {
+    for (int j = 0; j < 50 && !stopMovement; j++) {
+      servoMotorHand2.writeMicroseconds(1700);
+      server.handleClient();
+    
+      moveServo(servoMotorInf1, 90, 30, 3);
+      if (stopMovement) break;
+
+      moveServo(servoMotorSup1, 90, 120, 5);
+      if (stopMovement) break;
+
+      servoMotorHand.writeMicroseconds(1700);
+      server.handleClient();
+      servoMotorHand2.writeMicroseconds(1500);
+      server.handleClient();
+
+      moveServo(servoMotorInf1, 30, 90, 3);
+      if (stopMovement) break;
+      
+      moveServo(servoMotorSup1, 120, 90, 5);
+      if (stopMovement) break;
+
+      servoMotorHand.writeMicroseconds(1500);
+      server.handleClient();
+      servoMotorHand2.writeMicroseconds(1300);
+      server.handleClient();
+
+      moveServo(servoMotorInf2, 90, 150, 3);
+      if (stopMovement) break;
+      
+      moveServo(servoMotorSup2, 90, 60, 5);
+      if (stopMovement) break;
+
+      servoMotorHand.writeMicroseconds(1300);
+      server.handleClient();
+
+      servoMotorHand2.writeMicroseconds(1500);
+      server.handleClient();
+      
+      moveServo(servoMotorInf2, 150, 80, 3);
+      if (stopMovement) break;
+      
+      moveServo(servoMotorSup2, 60, 90, 5);
+      if (stopMovement) break;
+
+      servoMotorHand.writeMicroseconds(1500);
+      server.handleClient();
+    }
+    
+    if (stopMovement) {
+      stopServos();
+    }
+  }
 }
